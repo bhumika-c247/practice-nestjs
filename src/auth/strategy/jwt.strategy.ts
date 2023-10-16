@@ -8,6 +8,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 export class JWTStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(
     config: ConfigService,
+    // eslint-disable-next-line no-unused-vars
     private prisma: PrismaService,
   ) {
     super({
@@ -22,8 +23,6 @@ export class JWTStrategy extends PassportStrategy(Strategy, 'jwt') {
         id: payload.sub,
       },
     });
-    console.log('user in validate', user);
-
     return user;
   }
 }

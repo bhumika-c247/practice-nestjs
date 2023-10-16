@@ -1,9 +1,10 @@
+/* eslint-disable no-unused-vars */
 import { ForbiddenException, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
+import * as argon from 'argon2';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { AuthDto } from './dto';
-import * as argon from 'argon2';
-import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
 
 @Injectable({})
 export class AuthService {
@@ -14,31 +15,38 @@ export class AuthService {
   ) {}
 
   async login(dto: AuthDto) {
+    const { email, password } = dto;
     try {
       // check if the user exists
       const user = await this.prisma.user.findUnique({
         where: {
-          email: dto.email,
+          email,
         },
       });
       if (!user) throw new ForbiddenException('User not found');
       // verify password and return jwt token
-      const matchPassword = await argon.verify(user.hash, dto.password);
+      const matchPassword = await argon.verify(user.hash, password);
       if (!matchPassword) throw new ForbiddenException('Credentials Incorrect');
       delete user.hash;
       const token = await this.signToken(user.id, user.email);
-      return { message: 'Logged in successfully', user, token };
+      return { message: 'Logged in successfully', token };
     } catch (error) {
       throw error;
     }
   }
 
   async signup(dto: AuthDto) {
-    const { email, firstName, lastName } = dto;
+    const { email, firstName, lastName, password } = dto;
     try {
       // check if email already exists
-      // generate password
-      const hash = await argon.hash(dto.password);
+      const checkUserExists = await this.prisma.user.findUnique({
+        where: {
+          email,
+        },
+      });
+      if (checkUserExists) throw new ForbiddenException('User already exists');
+      // generate password hash
+      const hash = await argon.hash(password);
       // save user
       const user = await this.prisma.user.create({
         data: {
@@ -49,7 +57,6 @@ export class AuthService {
         },
         select: {
           id: true,
-          email: true,
         },
       });
       return { message: 'User signed up successfully', user };
@@ -62,19 +69,8 @@ export class AuthService {
     const payload = { sub: userId, email };
     const secret = this.config.get('JWT_SECRET');
     return this.jwt.signAsync(payload, {
-      expiresIn: '15m',
+      expiresIn: '30m',
       secret,
     });
   }
-
-  // async validateUser(dto: AuthDto) {
-  //   const user = await this.users.findUser(dto.email);
-  //   console.log('user', user);
-
-  //   if (user && user.password === pass) {
-  //     const { password, ...result } = user;
-  //     return result;
-  //   }
-  //   return null;
-  // }
 }

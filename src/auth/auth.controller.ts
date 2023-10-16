@@ -4,6 +4,7 @@ import { AuthDto } from './dto';
 
 @Controller('auth')
 export class AuthController {
+  // eslint-disable-next-line no-unused-vars
   constructor(private authService: AuthService) {}
   @Post('/login')
   login(@Body() dto: AuthDto) {

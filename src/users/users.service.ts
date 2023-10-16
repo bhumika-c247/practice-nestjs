@@ -1,11 +1,12 @@
 import { ForbiddenException, Injectable, Param } from '@nestjs/common';
+import * as argon from 'argon2';
+import { AuthDto } from 'src/auth/dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 
-export type User = any;
-
 @Injectable()
 export class UsersService {
+  // eslint-disable-next-line no-unused-vars
   constructor(private prisma: PrismaService) {}
 
   async findUser(email) {
@@ -14,6 +15,51 @@ export class UsersService {
       const user = await this.prisma.user.findUnique({
         where: {
           email,
+        },
+      });
+      return user;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async create(dto: AuthDto) {
+    const { email, firstName, lastName, password } = dto;
+    try {
+      // check if email already exists
+      const checkUserExists = await this.prisma.user.findUnique({
+        where: {
+          email,
+        },
+      });
+      if (checkUserExists) throw new ForbiddenException('User already exists');
+      // generate password hash
+      const hash = await argon.hash(password);
+      // save user
+      const user = await this.prisma.user.create({
+        data: {
+          email,
+          hash,
+          firstName,
+          lastName,
+        },
+        select: {
+          id: true,
+          email: true,
+        },
+      });
+      return { message: 'User created successfully', user };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async findById(@Param('id') id: string) {
+    try {
+      // check if the user exists
+      const user = await this.prisma.user.findUnique({
+        where: {
+          id,
         },
       });
       return user;
