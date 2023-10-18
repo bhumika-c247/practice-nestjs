@@ -30,16 +30,16 @@ export class UsersController {
     return this.userService.create(dto);
   }
 
-  @Get(':id')
-  findById(@Param('id') id: string) {
-    return this.userService.findById(id);
-  }
-
   // Authentication middleware
   @UseGuards(AuthGuard('jwt'))
   @Get('/me')
   getUserDetails(@Req() req: Request) {
     return req.user;
+  }
+
+  @Get(':id')
+  findById(@Param('id') id: string) {
+    return this.userService.findById(id);
   }
 
   @Patch(':id')
