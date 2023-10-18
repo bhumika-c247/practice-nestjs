@@ -1,6 +1,7 @@
 import { ForbiddenException, Injectable, Param } from '@nestjs/common';
 import * as argon from 'argon2';
 import { AuthDto } from 'src/auth/dto';
+import { Messages } from 'src/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 
@@ -9,7 +10,7 @@ export class UsersService {
   // eslint-disable-next-line no-unused-vars
   constructor(private prisma: PrismaService) {}
 
-  async findUser(email) {
+  async findUser(email: string) {
     try {
       // check if the user exists
       const user = await this.prisma.user.findUnique({
@@ -17,6 +18,7 @@ export class UsersService {
           email,
         },
       });
+      if (!user) throw new ForbiddenException(Messages.USER_NOT_FOUND);
       return user;
     } catch (error) {
       throw error;
@@ -32,7 +34,7 @@ export class UsersService {
           email,
         },
       });
-      if (checkUserExists) throw new ForbiddenException('User already exists');
+      if (checkUserExists) throw new ForbiddenException(Messages.USER_EXISTS);
       // generate password hash
       const hash = await argon.hash(password);
       // save user
@@ -43,12 +45,13 @@ export class UsersService {
           firstName,
           lastName,
         },
+        //  select specific fields to return
         select: {
           id: true,
           email: true,
         },
       });
-      return { message: 'User created successfully', user };
+      return { message: Messages.USER_CREATED, user };
     } catch (error) {
       throw error;
     }
@@ -71,6 +74,7 @@ export class UsersService {
   async findAll() {
     try {
       const users = await this.prisma.user.findMany();
+      if (!users) throw new ForbiddenException(Messages.USER_NOT_FOUND);
       return users;
     } catch (error) {
       throw error;
@@ -84,7 +88,8 @@ export class UsersService {
           id,
         },
       });
-      if (!checkExistingUser) throw new ForbiddenException('User not found');
+      if (!checkExistingUser)
+        throw new ForbiddenException(Messages.USER_NOT_FOUND);
       const updateUser = await this.prisma.user.update({
         where: {
           id,
@@ -104,13 +109,14 @@ export class UsersService {
           id,
         },
       });
-      if (!checkExistingUser) throw new ForbiddenException('User not found');
+      if (!checkExistingUser)
+        throw new ForbiddenException(Messages.USER_NOT_FOUND);
       const deleteUser = await this.prisma.user.delete({
         where: {
           id,
         },
       });
-      return { user: deleteUser.id, message: 'User deleted' };
+      return { user: deleteUser.id, message: Messages.USER_DELETED };
     } catch (error) {
       throw error;
     }

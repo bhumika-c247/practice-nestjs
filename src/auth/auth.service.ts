@@ -5,6 +5,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as argon from 'argon2';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { AuthDto } from './dto';
+import { Messages } from 'src/common';
 
 @Injectable({})
 export class AuthService {
@@ -23,13 +24,14 @@ export class AuthService {
           email,
         },
       });
-      if (!user) throw new ForbiddenException('User not found');
+      if (!user) throw new ForbiddenException(Messages.USER_NOT_FOUND);
       // verify password and return jwt token
       const matchPassword = await argon.verify(user.hash, password);
-      if (!matchPassword) throw new ForbiddenException('Credentials Incorrect');
+      if (!matchPassword)
+        throw new ForbiddenException(Messages.INCORRECT_DETAILS);
       delete user.hash;
       const token = await this.signToken(user.id, user.email);
-      return { message: 'Logged in successfully', token };
+      return { message: Messages.LOGIN_SUCCESSFUL, token };
     } catch (error) {
       throw error;
     }
@@ -44,7 +46,7 @@ export class AuthService {
           email,
         },
       });
-      if (checkUserExists) throw new ForbiddenException('User already exists');
+      if (checkUserExists) throw new ForbiddenException(Messages.USER_EXISTS);
       // generate password hash
       const hash = await argon.hash(password);
       // save user
@@ -59,7 +61,7 @@ export class AuthService {
           id: true,
         },
       });
-      return { message: 'User signed up successfully', user };
+      return { message: Messages.SIGNUP_SUCCESSFUL, user };
     } catch (error) {
       throw error;
     }
